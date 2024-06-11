@@ -3,7 +3,6 @@
 #include "Common.h"
 
 #include <cassert>
-#include <mutex>
 #include <unordered_map>
 
 namespace dm {
@@ -18,7 +17,7 @@ public:
         u64 hash = 0;
         for (u32 i = 0, n = key.size(); i < n; i++)
         {
-            hash += (key[i] - 'a') * primes[i] % 1'000'000'009; 
+            hash += (key[i] - 'a') * primes[i] % 1'000'000'009;
         }
         return hash;
     }

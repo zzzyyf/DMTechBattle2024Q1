@@ -6,9 +6,10 @@
 #include <fstream>
 #include <sstream>
 
-#include "hash1.h"
+#include "MyHashMap.h"
 
 #include <thread>
+#include <vector>
 
 namespace dm {
 
@@ -16,24 +17,30 @@ constexpr u32 data_size = 10'000'000; // 10'000'000;
 std::string st_data[data_size];
 u32 st_crc_data[data_size];
 
+constexpr u32 parallel = 24;
+
 };
 
 using namespace dm;
 
-using Map = std::unordered_map<std::string, u32>;
+using Map = MyHashMap;
+// using Map = std::unordered_map<std::string, u32>;
 // using Map = std::unordered_map<std::string, u32, Hash1>;
 
 template <class M>
-void insert(M &map);
+void dispatch(const u32 n, const u32 parallel, M &map);
 
 template <class M>
-void search(M &map);
+void insert(M &map, const u32 id, const u32 start, const u32 end_ex);
+
+template <class M>
+void search(M &map, const u32 id, const u32 start, const u32 end_ex);
 
 u64 getMemUsage();
 
 int main(int argc, char *argv[])
 {
-    initHash1();
+    // initHash1();
 
     for (u32 i = 0; i < data_size; i++)
     {
@@ -44,51 +51,82 @@ int main(int argc, char *argv[])
         st_crc_data[i] = crc32(crc, data, st_data[i].size());
     }
 
-    std::cout << "init mem usage: " << getMemUsage() << std::endl;
-
-    auto start = std::chrono::steady_clock::now();
+    std::cout << "init mem usage kb: " << getMemUsage() << std::endl;
 
     Map map;
-    insert(map);
-    auto end = std::chrono::steady_clock::now();
-    
-    std::chrono::duration<double, std::milli> diff = end - start;
-    std::cout << "insert cost " << diff.count() << "ms" << std::endl;
-
-    std::cout << "map size: " << map.size() << std::endl;
-    std::cout << "mem usage after insert: " << getMemUsage() << std::endl;
-    
-    // for (auto itr : map)
-    // {
-    //     std::cout << itr.first << ": " << itr.second << std::endl;
-    // }
-
-    start = std::chrono::steady_clock::now();
-    search(map);
-    end = std::chrono::steady_clock::now();
-    
-    diff = end - start;
-    std::cout << "search cost " << diff.count() << "ms" << std::endl;
+    dispatch(data_size, parallel, map);
 
     return 0;
 }
 
+
 template <class M>
-void insert(M &map)
+void dispatch(const u32 n, const u32 parallel, M &map)
 {
-    for (u32 i = 0; i < data_size; i++)
+    auto t1 = std::chrono::steady_clock::now();
+
+    u32 slice_size = n / parallel;
+
+    u32 start = 0;
+    u32 remainder = n % parallel;
+    u32 end_ex = start;
+
+    std::vector<std::thread> threads(parallel);
+
+    for (u32 i = 0; i < parallel; i++)
     {
-        map.emplace(st_data[i], st_crc_data[i]);
+        end_ex += slice_size + (i < remainder ? 1 : 0);
+        threads[i] = std::thread([&, i, start, end_ex](){ insert(map, i, start, end_ex); });
+        start = end_ex;
+    }
+
+    for (auto &th : threads) {
+        th.join();
+    }
+
+    auto t2 = std::chrono::steady_clock::now();
+
+    std::chrono::duration<double, std::milli> diff = t2 - t1;
+    std::cout << "insert cost " << diff.count() << "ms" << std::endl;
+
+    std::cout << "map size: " << map.size() << std::endl;
+    std::cout << "mem usage kb after insert: " << getMemUsage() << std::endl;
+
+    t1 = std::chrono::steady_clock::now();
+
+    start = 0;
+    end_ex = start;
+    for (u32 i = 0; i < parallel; i++)
+    {
+        end_ex += slice_size + (i < remainder ? 1 : 0);
+        threads[i] = std::thread([&, i, start, end_ex](){ search(map, i, start, end_ex); });
+        start = end_ex;
+    }
+
+    for (auto &th : threads) {
+        th.join();
+    }
+
+    t2 = std::chrono::steady_clock::now();
+    diff = t2 - t1;
+    std::cout << "search cost " << diff.count() << "ms" << std::endl;
+}
+
+template <class M>
+void insert(M &map, const u32 id, const u32 start, const u32 end_ex)
+{
+    for (u32 i = start; i < end_ex; i++)
+    {
+        map.emplace(id, st_data[i], st_crc_data[i]);
     }
 }
 
 template <class M>
-void search(M &map)
+void search(M &map, const u32 id, const u32 start, const u32 end_ex)
 {
-    for (u32 i = 0; i < data_size; i++)
+    for (u32 i = start; i < end_ex; i++)
     {
-        volatile auto itr = map.find(st_data[i]);
-        // assert(itr != map.end());
+        auto itr = map.find(id, st_data[i]);
 
         assert(st_crc_data[i] == itr->second);
     }

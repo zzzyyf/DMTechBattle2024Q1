@@ -13,7 +13,7 @@ std::uniform_int_distribution<int> char_uniform_dist(0, 25);
 
 std::string genString()
 {
-    int len = len_uniform_dist(e1);
+    u32 len = len_uniform_dist(e1);
     std::string ss(len, 'c');
 
     for (u32 i = 0; i < len; i++) {

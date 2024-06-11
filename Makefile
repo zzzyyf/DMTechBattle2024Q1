@@ -1,7 +1,7 @@
 CXX=g++
-CPPFLAGS=-Wall -g -std=c++2a
+CPPFLAGS=-Wall -g3 -std=c++2a
 
-DBGFLAGS=-O2 -DNDEBUG
+DBGFLAGS=-O3 -DNDEBUG
 
 INC=-Ithird_party
 LIBS=-L/usr/local/lib -Lthird_party/libs -pthread -lz # shouldn't use -lpthread
