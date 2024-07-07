@@ -1,3 +1,9 @@
+/**
+ * We managed to achieve ~1700ms insert and <20ms search cost on this impl.
+ * According to vtune, although we used reserve() to pre-allocate some space,
+ * it still costed about 75% of insert time to allocate memory and almost
+ * all time to construct insert pairs.
+ */
 #pragma once
 
 #include "Common.h"

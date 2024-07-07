@@ -6,7 +6,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "MyHashMap.h"
+#include "MyHashMapV2.h"
 
 #include <thread>
 #include <vector>
@@ -17,13 +17,13 @@ constexpr u32 data_size = 10'000'000; // 10'000'000;
 std::string st_data[data_size];
 u32 st_crc_data[data_size];
 
-constexpr u32 parallel = 24;
+const u32 parallel = std::thread::hardware_concurrency();
 
 };
 
 using namespace dm;
 
-using Map = MyHashMap;
+using Map = MyHashMapV2;
 // using Map = std::unordered_map<std::string, u32>;
 // using Map = std::unordered_map<std::string, u32, Hash1>;
 
@@ -127,8 +127,7 @@ void search(M &map, const u32 id, const u32 start, const u32 end_ex)
     for (u32 i = start; i < end_ex; i++)
     {
         auto itr = map.find(id, st_data[i]);
-
-        assert(st_crc_data[i] == itr->second);
+        assert(st_crc_data[i] == itr);
     }
 }
 

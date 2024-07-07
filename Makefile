@@ -1,10 +1,11 @@
 CXX=g++
-CPPFLAGS=-Wall -g3 -std=c++2a
+CPPFLAGS=-Wall -g3 -std=c++2a #-fsanitize=address -fno-omit-frame-pointer
 
 DBGFLAGS=-O3 -DNDEBUG
 
 INC=-Ithird_party
-LIBS=-L/usr/local/lib -Lthird_party/libs -pthread -lz # shouldn't use -lpthread
+LIBS_PRE=#-lasan
+LIBS=$(LIBS_PRE) -L/usr/local/lib -Lthird_party/libs -pthread -lz # shouldn't use -lpthread
 
 SRCDIR=./src
 SRCS=$(wildcard $(SRCDIR)/*.cpp)
